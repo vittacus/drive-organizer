@@ -1,0 +1,13 @@
+{
+  "owner_name": "Your Name",
+  "owner_context": "a college student",
+  "default_org_semester": "SP26",
+  "course_normalizations": {
+    "CS61A": "CS 61A",
+    "CS61B": "CS 61B"
+  },
+  "course_semester_map": {
+    "CS 61A": "FA22",
+    "CS 61B": "SP23"
+  }
+}
