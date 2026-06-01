@@ -138,7 +138,7 @@ def run_wizard():
 
     # ── Step 3: Name ──────────────────────────────────────────────────────────
     print(f"{BOLD}3 / 3  What's your name?{RESET}")
-    print(f"       {DIM}Used to give Claude context when classifying your files.{RESET}")
+    print(f"       {DIM}Used to personalize how your files get categorized.{RESET}")
     print()
 
     while True:
