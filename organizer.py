@@ -18,7 +18,7 @@ DRY_RUN = False
 SCOPES = ['https://www.googleapis.com/auth/drive']
 ANTHROPIC_API_KEY = os.environ["ANTHROPIC_API_KEY"]
 PROGRESS_FILE = "progress.json"
-BATCH_SIZE = 15
+BATCH_SIZE = 30
 
 # ---------------------------------------------------------------------------
 # Config
@@ -119,6 +119,16 @@ def authenticate():
         with open('token.json', 'w') as token:
             token.write(creds.to_json())
     return build('drive', 'v3', credentials=creds)
+
+
+def get_root_id(service):
+    return service.files().get(fileId='root', fields='id').execute()['id']
+
+
+def needs_organizing(file, root_id):
+    """True only when the file sits directly in My Drive root (unorganized)."""
+    parents = file.get('parents', [])
+    return bool(parents) and all(p == root_id for p in parents)
 
 
 def get_all_files(service):
@@ -276,7 +286,7 @@ Return ONLY the JSON array, nothing else."""
 
     response = client.messages.create(
         model="claude-sonnet-4-6",
-        max_tokens=500,
+        max_tokens=1024,
         messages=[{"role": "user", "content": prompt}]
     )
     text = response.content[0].text.strip()
@@ -297,22 +307,42 @@ def main():
     client = anthropic.Anthropic(api_key=ANTHROPIC_API_KEY)
 
     print("Fetching all files from Drive...")
+    service_root_id = get_root_id(service)
     all_files = get_all_files(service)
-    print(f"Found {len(all_files)} files total.\n")
+    print(f"Found {len(all_files)} files total.")
 
     progress = load_progress()
     folder_cache = {}
-    remaining = [f for f in all_files if f['id'] not in progress]
-    print(f"Already processed: {len(progress)} | Remaining: {len(remaining)}\n")
+
+    # Fast-skip files that are already inside a folder (non-root parent).
+    # They were either previously organized or placed there by someone else.
+    unprocessed = [f for f in all_files if f['id'] not in progress]
+    to_organize  = [f for f in unprocessed if needs_organizing(f, service_root_id)]
+    pre_organized = [f for f in unprocessed if not needs_organizing(f, service_root_id)]
+    for f in pre_organized:
+        progress[f['id']] = "SKIPPED"
+    if pre_organized:
+        print(f"Fast-skipped {len(pre_organized)} already-organized files (non-root parent).")
+    print(f"Already processed: {len(progress) - len(pre_organized)} | To organize: {len(to_organize)}\n")
 
     stats = {'moved': 0, 'skipped': 0, 'unknown_semester': 0, 'by_folder': {}}
+    run_start = time.time()
+    files_done = 0
 
-    total = len(remaining)
+    total = len(to_organize)
     for i in range(0, total, BATCH_SIZE):
-        batch = remaining[i:i+BATCH_SIZE]
-        batch_num  = (i // BATCH_SIZE) + 1
+        batch = to_organize[i:i+BATCH_SIZE]
+        batch_num     = (i // BATCH_SIZE) + 1
         total_batches = (total + BATCH_SIZE - 1) // BATCH_SIZE
-        print(f"Batch {batch_num}/{total_batches} — categorizing {len(batch)} files...")
+
+        elapsed = time.time() - run_start
+        if files_done > 0 and elapsed > 0:
+            rate = files_done / elapsed
+            eta_sec = (total - files_done) / rate
+            eta_str = f"{int(eta_sec // 60)}m {int(eta_sec % 60):02d}s"
+        else:
+            eta_str = "calculating..."
+        print(f"Batch {batch_num}/{total_batches} — {files_done}/{total} files done — ETA: {eta_str}")
 
         paths = None
         for attempt in range(3):
@@ -349,15 +379,17 @@ def main():
 
                 progress[file['id']] = path
                 stats['moved'] += 1
+                files_done += 1
                 print(f"  {prefix}{tag} '{file['name']}' → {path}")
             except Exception as e:
                 print(f"  ✗ Skipped '{file['name']}': {e}")
                 progress[file['id']] = "SKIPPED"
                 stats['skipped'] += 1
+                files_done += 1
 
         save_progress(progress)
         if not DRY_RUN:
-            time.sleep(3)
+            time.sleep(1)
 
     print("\n=== Summary ===")
     print(f"  Moved:            {stats['moved']}")
