@@ -85,13 +85,54 @@ cp .env.example .env
 # ANTHROPIC_API_KEY=sk-ant-...
 ```
 
-### Config
+### First run
 
-```bash
-cp config.example.json config.json
+Run the organizer. If `config.json` doesn't exist, a setup wizard runs automatically:
+
+```
+Drive Organizer · Setup
+config.json not found. Answer three questions to get started.
+
+1 / 3  What best describes you?
+       1  Student
+       2  Professional
+       3  General user
+
+  > 1
+
+2 / 3  Your folder categories:
+       1  📚  School  (semester + course subfolders)
+       2  💼  Work & Internships
+       3  📄  Personal
+       4  💳  Finance
+       5  📷  Photos & Media
+
+  Press Enter to use these as-is.
+  Type a number to remove that category.
+  Type a name to add a new one.
+
+  >
+
+3 / 3  What's your name?
+       Used to give Claude context when classifying your files.
+
+  > Alex
+
+  ✓ config.json created
+
+  Name        Alex
+  Type        Student
+  Categories  School, Work & Internships, Personal, Finance, Photos & Media
+  Semester    FA26  (auto-detected from today's date)
 ```
 
-`config.json` is gitignored. `config.example.json` is the committed template.
+After that, run the command again to start organizing. You can also run the wizard standalone at any time to regenerate your config:
+
+```bash
+python3 setup.py
+```
+
+`config.json` is gitignored. `config.example.json` is the committed template with all available fields.
 
 ---
 
@@ -99,20 +140,22 @@ cp config.example.json config.json
 
 ### config.json
 
+The wizard generates this file. You can edit it directly afterwards to add course mappings or tweak anything the wizard doesn't ask about.
+
 ```json
 {
   "owner_name": "Alex",
-  "owner_context": "a college student double-majoring in CS and economics",
-  "default_org_semester": "FA25",
+  "owner_context": "a student",
+  "user_type": "student",
+  "categories": ["School", "Work & Internships", "Personal", "Finance", "Photos & Media"],
+  "default_org_semester": "FA26",
   "course_normalizations": {
     "CS61A": "CS 61A",
-    "Calculus": "Math 1A",
-    "Anthropology": "Anthro 2AC"
+    "Calculus": "Math 1A"
   },
   "course_semester_map": {
     "CS 61A": "FA23",
-    "Math 1A": "SP24",
-    "Anthro 2AC": "FA24"
+    "Math 1A": "SP24"
   }
 }
 ```
@@ -120,10 +163,12 @@ cp config.example.json config.json
 | Field | Purpose |
 |---|---|
 | `owner_name` | Your name, passed to Claude for context |
-| `owner_context` | Short description of you; helps with ambiguous files |
-| `default_org_semester` | Fallback semester for org or work files |
-| `course_normalizations` | Maps name variants to canonical folder names |
-| `course_semester_map` | Final override: course name to correct semester |
+| `owner_context` | Short description of you; helps Claude with ambiguous files |
+| `user_type` | `student`, `professional`, or `general`; controls the prompt and category defaults |
+| `categories` | Ordered list of top-level folder names; determines what Claude can choose from |
+| `default_org_semester` | Fallback semester for files with no date signal (students only) |
+| `course_normalizations` | Maps spelling variants to canonical folder names |
+| `course_semester_map` | Final override: course name to correct semester, wins over date detection |
 
 ### Default folder structure
 
@@ -140,7 +185,7 @@ Photos & Media/
     Finance/  Events/  Recruitment/  Operations/  Marketing/
 ```
 
-To change top-level categories, edit `CATEGORY_META` in `app.py` and the classification prompt in `organizer.py`. Semester date ranges live in `date_to_semester()`.
+Top-level categories come from the `categories` list in `config.json` — edit that list directly or re-run `python3 setup.py` to rebuild it interactively. Semester date ranges live in `date_to_semester()` in `organizer.py`.
 
 ### Course normalizations
 
