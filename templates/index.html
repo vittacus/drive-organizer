@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Drive Organizer</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <style>
+    /* ── Reset & Base ───────────────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:          #F7F6F3;
+      --surface:     #FFFFFF;
+      --border:      #EBEBEA;
+      --border-soft: #F0EFED;
+      --text:        #1A1917;
+      --text-2:      #6B6B6B;
+      --text-3:      #A8A29E;
+      --accent:      #5B6AF0;
+      --accent-bg:   #EEF0FE;
+      --green:       #22C55E;
+      --green-bg:    #DCFCE7;
+      --red:         #EF4444;
+      --amber:       #F59E0B;
+      --shadow-sm:   0 1px 2px rgba(0,0,0,0.05);
+      --shadow:      0 1px 3px rgba(0,0,0,0.07), 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-md:   0 4px 6px rgba(0,0,0,0.05), 0 2px 4px rgba(0,0,0,0.04);
+      --radius:      10px;
+      --radius-sm:   6px;
+    }
+
+    html { font-size: 15px; }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.5;
+      min-height: 100vh;
+      padding: 0 24px 80px;
+    }
+
+    /* ── Layout ─────────────────────────────────────────────────── */
+    .container { max-width: 860px; margin: 0 auto; }
+
+    /* ── Header ─────────────────────────────────────────────────── */
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 32px 0 40px;
+      border-bottom: 1px solid var(--border);
+      margin-bottom: 40px;
+    }
+
+    .header-left { display: flex; align-items: center; gap: 12px; }
+
+    .logo {
+      width: 32px; height: 32px;
+      background: var(--accent);
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px;
+    }
+
+    .header h1 {
+      font-size: 17px;
+      font-weight: 600;
+      letter-spacing: -0.2px;
+      color: var(--text);
+    }
+
+    .last-run {
+      font-size: 12.5px;
+      color: var(--text-3);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 4px 12px;
+    }
+
+    /* ── Metric Cards ────────────────────────────────────────────── */
+    .metrics {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    .metric {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 20px 20px 18px;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .metric-value {
+      font-size: 28px;
+      font-weight: 700;
+      letter-spacing: -1px;
+      line-height: 1;
+      margin-bottom: 6px;
+    }
+
+    .metric-label {
+      font-size: 12px;
+      font-weight: 500;
+      color: var(--text-3);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .metric-value.green  { color: var(--green); }
+    .metric-value.accent { color: var(--accent); }
+    .metric-value.muted  { color: var(--text-2); }
+    .metric-value.amber  { color: var(--amber);  }
+
+    /* ── Two-column grid ─────────────────────────────────────────── */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 24px;
+    }
+
+    /* ── Cards ───────────────────────────────────────────────────── */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+    }
+
+    .card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 18px 20px 14px;
+      border-bottom: 1px solid var(--border-soft);
+    }
+
+    .card-title {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-2);
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .card-body { padding: 16px 20px; }
+
+    /* ── Category Rows ───────────────────────────────────────────── */
+    .category-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding: 9px 0;
+      border-bottom: 1px solid var(--border-soft);
+    }
+    .category-row:last-child { border-bottom: none; }
+
+    .category-icon { font-size: 15px; width: 20px; text-align: center; flex-shrink: 0; }
+
+    .category-name {
+      font-size: 13.5px;
+      font-weight: 500;
+      flex: 1;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .category-bar-wrap {
+      width: 80px;
+      height: 4px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+      flex-shrink: 0;
+    }
+
+    .category-bar {
+      height: 100%;
+      border-radius: 2px;
+      width: 0%;
+      transition: width 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+
+    .category-count {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-2);
+      width: 36px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    /* ── Semester Tags ───────────────────────────────────────────── */
+    .semester-list {
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .semester-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 9px 0;
+      border-bottom: 1px solid var(--border-soft);
+    }
+    .semester-row:last-child { border-bottom: none; }
+
+    .semester-label {
+      font-size: 12.5px;
+      font-weight: 600;
+      font-family: 'JetBrains Mono', monospace;
+      color: var(--accent);
+      background: var(--accent-bg);
+      padding: 2px 8px;
+      border-radius: 4px;
+      width: 48px;
+      text-align: center;
+      flex-shrink: 0;
+    }
+
+    .semester-bar-wrap {
+      flex: 1;
+      height: 3px;
+      background: var(--border);
+      border-radius: 2px;
+      overflow: hidden;
+    }
+
+    .semester-bar {
+      height: 100%;
+      background: var(--accent);
+      border-radius: 2px;
+      opacity: 0.4;
+      width: 0%;
+      transition: width 0.7s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+
+    .semester-count {
+      font-size: 13px;
+      font-weight: 600;
+      color: var(--text-2);
+      width: 28px;
+      text-align: right;
+      flex-shrink: 0;
+    }
+
+    /* ── Run Section ─────────────────────────────────────────────── */
+    .run-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      overflow: hidden;
+      margin-bottom: 24px;
+    }
+
+    .run-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 20px 24px;
+      border-bottom: 1px solid var(--border-soft);
+    }
+
+    .run-info h2 {
+      font-size: 15px;
+      font-weight: 600;
+      margin-bottom: 3px;
+    }
+
+    .run-info p {
+      font-size: 13px;
+      color: var(--text-3);
+    }
+
+    .run-btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      border-radius: var(--radius-sm);
+      padding: 9px 18px;
+      font-size: 13.5px;
+      font-weight: 600;
+      font-family: inherit;
+      cursor: pointer;
+      transition: background 0.15s, transform 0.1s, box-shadow 0.15s;
+      box-shadow: 0 1px 2px rgba(91,106,240,0.25);
+      white-space: nowrap;
+    }
+
+    .run-btn:hover:not(:disabled) {
+      background: #4A59E0;
+      box-shadow: 0 3px 8px rgba(91,106,240,0.35);
+      transform: translateY(-1px);
+    }
+
+    .run-btn:active:not(:disabled) { transform: translateY(0); }
+
+    .run-btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .run-btn svg { width: 14px; height: 14px; flex-shrink: 0; }
+
+    /* ── Log Output ──────────────────────────────────────────────── */
+    .log-wrap {
+      display: none;
+      background: #0D1117;
+      border-top: 1px solid #21262D;
+    }
+
+    .log-wrap.visible { display: block; }
+
+    .log-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 10px 20px;
+      border-bottom: 1px solid #21262D;
+    }
+
+    .log-dots { display: flex; gap: 6px; }
+    .log-dot {
+      width: 10px; height: 10px;
+      border-radius: 50%;
+    }
+    .log-dot:nth-child(1) { background: #FF5F57; }
+    .log-dot:nth-child(2) { background: #FFBD2E; }
+    .log-dot:nth-child(3) { background: #28CA41; }
+
+    .log-status {
+      font-size: 11.5px;
+      color: #6E7681;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    #log-output {
+      padding: 16px 20px;
+      max-height: 380px;
+      overflow-y: auto;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      line-height: 1.7;
+      color: #8B949E;
+      scroll-behavior: smooth;
+    }
+
+    #log-output::-webkit-scrollbar { width: 4px; }
+    #log-output::-webkit-scrollbar-track { background: transparent; }
+    #log-output::-webkit-scrollbar-thumb { background: #30363D; border-radius: 2px; }
+
+    .log-line { display: block; }
+    .log-success { color: #3FB950; }
+    .log-error   { color: #FF7B72; }
+    .log-batch   { color: #E6EDF3; font-weight: 500; margin-top: 4px; }
+    .log-summary { color: #79C0FF; font-weight: 500; }
+    .log-skipped { color: #6E7681; }
+
+    /* ── Summary Card ────────────────────────────────────────────── */
+    #summary-card {
+      display: none;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-md);
+      overflow: hidden;
+      animation: slideUp 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    }
+
+    #summary-card.visible { display: block; }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(12px); }
+      to   { opacity: 1; transform: translateY(0); }
+    }
+
+    .summary-header {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 18px 24px;
+      background: var(--green-bg);
+      border-bottom: 1px solid #BBF7D0;
+    }
+
+    .summary-header .check {
+      width: 20px; height: 20px;
+      background: var(--green);
+      border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .summary-header h3 {
+      font-size: 14px;
+      font-weight: 600;
+      color: #15803D;
+    }
+
+    .summary-body { padding: 20px 24px; }
+
+    .summary-metrics {
+      display: flex;
+      gap: 32px;
+      margin-bottom: 20px;
+    }
+
+    .summary-metric-val {
+      font-size: 26px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+      line-height: 1;
+      margin-bottom: 4px;
+    }
+
+    .summary-metric-label {
+      font-size: 12px;
+      color: var(--text-3);
+      text-transform: uppercase;
+      letter-spacing: 0.4px;
+      font-weight: 500;
+    }
+
+    .summary-folders {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      padding-top: 16px;
+      border-top: 1px solid var(--border-soft);
+    }
+
+    .summary-folder-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12.5px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 4px 12px 4px 8px;
+    }
+
+    .summary-folder-pill .dot {
+      width: 7px; height: 7px;
+      border-radius: 50%;
+      flex-shrink: 0;
+    }
+
+    .folder-name  { font-weight: 500; color: var(--text); }
+    .folder-count { color: var(--text-3); margin-left: 2px; }
+
+    /* ── Spinner ─────────────────────────────────────────────────── */
+    .spinner {
+      width: 14px; height: 14px;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* ── Empty state ─────────────────────────────────────────────── */
+    .empty {
+      text-align: center;
+      padding: 48px 24px;
+      color: var(--text-3);
+    }
+    .empty p { font-size: 14px; margin-top: 8px; }
+
+    /* ── Responsive ──────────────────────────────────────────────── */
+    @media (max-width: 640px) {
+      .metrics   { grid-template-columns: repeat(2, 1fr); }
+      .grid-2    { grid-template-columns: 1fr; }
+      .run-header { flex-direction: column; align-items: flex-start; gap: 16px; }
+    }
+  </style>
+</head>
+
+<body>
+<div class="container">
+
+  <!-- ── Header ──────────────────────────────────────────────── -->
+  <header class="header">
+    <div class="header-left">
+      <div class="logo">🗂</div>
+      <h1>Drive Organizer</h1>
+    </div>
+    {% if stats %}
+      <span class="last-run">Last run {{ stats.last_run }}</span>
+    {% endif %}
+  </header>
+
+  {% if stats %}
+
+  <!-- ── Metric Cards ────────────────────────────────────────── -->
+  <div class="metrics">
+    <div class="metric">
+      <div class="metric-value green">{{ "{:,}".format(stats.moved) }}</div>
+      <div class="metric-label">Moved</div>
+    </div>
+    <div class="metric">
+      <div class="metric-value muted">{{ "{:,}".format(stats.skipped) }}</div>
+      <div class="metric-label">Skipped</div>
+    </div>
+    <div class="metric">
+      <div class="metric-value {% if stats.unknown == 0 %}green{% else %}amber{% endif %}">{{ stats.unknown }}</div>
+      <div class="metric-label">Unknown Semester</div>
+    </div>
+    <div class="metric">
+      <div class="metric-value accent">{{ "{:,}".format(stats.total) }}</div>
+      <div class="metric-label">Total Tracked</div>
+    </div>
+  </div>
+
+  <!-- ── Two-column: breakdown + semesters ───────────────────── -->
+  <div class="grid-2">
+
+    <!-- Category Breakdown -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">By Category</span>
+      </div>
+      <div class="card-body" style="padding: 8px 20px 12px;">
+        {% for folder in stats.folders %}
+        <div class="category-row">
+          <span class="category-icon">{{ folder.icon }}</span>
+          <span class="category-name">{{ folder.name }}</span>
+          <div class="category-bar-wrap">
+            <div class="category-bar"
+                 data-pct="{{ folder.pct }}"
+                 style="background: {{ folder.color }}"></div>
+          </div>
+          <span class="category-count">{{ folder.count }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+
+    <!-- School Semester Breakdown -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">School · By Semester</span>
+      </div>
+      <div class="card-body" style="padding: 8px 20px 12px;">
+        {% if stats.semesters %}
+          {% set max_sem = stats.semesters[0].count %}
+          <div class="semester-list">
+            {% for s in stats.semesters %}
+            <div class="semester-row">
+              <span class="semester-label">{{ s.label }}</span>
+              <div class="semester-bar-wrap">
+                <div class="semester-bar"
+                     data-pct="{{ (s.count / max_sem * 100)|round|int }}"></div>
+              </div>
+              <span class="semester-count">{{ s.count }}</span>
+            </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <div class="empty" style="padding: 24px 0;">
+            <p>No school files tracked yet.</p>
+          </div>
+        {% endif %}
+      </div>
+    </div>
+
+  </div>
+
+  {% else %}
+  <!-- No data yet -->
+  <div class="card" style="margin-bottom: 24px;">
+    <div class="empty">
+      <div style="font-size: 32px; margin-bottom: 12px;">📭</div>
+      <p>No data yet — run the organizer to get started.</p>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- ── Run Section ─────────────────────────────────────────── -->
+  <div class="run-section">
+    <div class="run-header">
+      <div class="run-info">
+        <h2>Run Organizer</h2>
+        <p>Fetches all Drive files, classifies them with Claude, and moves them into folders.</p>
+      </div>
+      <button class="run-btn" id="run-btn" onclick="startRun()">
+        <svg viewBox="0 0 16 16" fill="currentColor">
+          <path d="M4 2.5a.5.5 0 0 1 .765-.424l9 5a.5.5 0 0 1 0 .848l-9 5A.5.5 0 0 1 4 12.5v-10z"/>
+        </svg>
+        Run Organizer
+      </button>
+    </div>
+
+    <!-- Log output — hidden until run starts -->
+    <div class="log-wrap" id="log-wrap">
+      <div class="log-toolbar">
+        <div class="log-dots">
+          <div class="log-dot"></div>
+          <div class="log-dot"></div>
+          <div class="log-dot"></div>
+        </div>
+        <span class="log-status" id="log-status">python3.11 -u organizer.py</span>
+      </div>
+      <div id="log-output"></div>
+    </div>
+  </div>
+
+  <!-- ── Summary Card (shown after run) ──────────────────────── -->
+  <div id="summary-card">
+    <div class="summary-header">
+      <div class="check">
+        <svg width="11" height="9" viewBox="0 0 11 9" fill="none">
+          <path d="M1 4.5L4 7.5L10 1.5" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <h3>Run complete</h3>
+    </div>
+    <div class="summary-body">
+      <div class="summary-metrics" id="summary-metrics"></div>
+      <div class="summary-folders" id="summary-folders"></div>
+    </div>
+  </div>
+
+</div><!-- /container -->
+
+<script>
+  // ── Animate bars on load ──────────────────────────────────────
+  window.addEventListener('load', () => {
+    const animate = (selector, prop) => {
+      document.querySelectorAll(selector).forEach((el, i) => {
+        setTimeout(() => {
+          el.style[prop] = el.dataset.pct + '%';
+        }, 120 + i * 60);
+      });
+    };
+    animate('.category-bar', 'width');
+    animate('.semester-bar', 'width');
+  });
+
+  // ── Log colorizer ─────────────────────────────────────────────
+  const CATEGORY_COLORS = {
+    'School': '#5B6AF0', 'DiversaTech': '#8B5CF6',
+    'Photos & Media': '#F59E0B', 'Work & Internships': '#10B981',
+    'Personal': '#6B7280', 'Finance': '#EF4444',
+  };
+  const CATEGORY_ICONS = {
+    'School': '📚', 'DiversaTech': '🔗', 'Photos & Media': '📷',
+    'Work & Internships': '💼', 'Personal': '📄', 'Finance': '💳',
+  };
+
+  function lineClass(text) {
+    if (/^\s+[✓✗]/.test(text)) {
+      if (text.includes('✓')) return 'log-success';
+      if (text.includes('✗')) return 'log-error';
+    }
+    if (/^Batch \d+\/\d+/.test(text)) return 'log-batch';
+    if (/^===/.test(text) || /^\s+(Moved|Skipped|Unknown|By top)/.test(text)) return 'log-summary';
+    if (/Fast-skipped/.test(text)) return 'log-skipped';
+    return '';
+  }
+
+  function appendLog(text) {
+    const out  = document.getElementById('log-output');
+    const line = document.createElement('span');
+    line.className = 'log-line ' + lineClass(text);
+    line.textContent = text || ' ';
+    out.appendChild(line);
+    out.appendChild(document.createTextNode('\n'));
+    out.scrollTop = out.scrollHeight;
+  }
+
+  // ── Run ───────────────────────────────────────────────────────
+  function startRun() {
+    const btn    = document.getElementById('run-btn');
+    const wrap   = document.getElementById('log-wrap');
+    const status = document.getElementById('log-status');
+    const output = document.getElementById('log-output');
+
+    // Reset
+    output.innerHTML = '';
+    document.getElementById('summary-card').classList.remove('visible');
+
+    // Button → loading state
+    btn.disabled   = true;
+    btn.innerHTML  = '<div class="spinner"></div> Running…';
+    wrap.classList.add('visible');
+    status.textContent = 'python3.11 -u organizer.py';
+
+    const es = new EventSource('/run');
+
+    es.onmessage = (e) => {
+      const msg = JSON.parse(e.data);
+      if (msg.done) {
+        es.close();
+        btn.disabled  = false;
+        btn.innerHTML = '<svg viewBox="0 0 16 16" fill="currentColor" style="width:14px;height:14px"><path d="M4 2.5a.5.5 0 0 1 .765-.424l9 5a.5.5 0 0 1 0 .848l-9 5A.5.5 0 0 1 4 12.5v-10z"/></svg> Run Again';
+        status.textContent = msg.code === 0 ? '✓ exited 0' : `✗ exited ${msg.code}`;
+        if (msg.code === 0) loadSummary();
+      } else if (msg.line !== undefined) {
+        appendLog(msg.line);
+      }
+    };
+
+    es.onerror = () => {
+      es.close();
+      appendLog('Connection error — is the server running?');
+      btn.disabled  = false;
+      btn.innerHTML = '<svg viewBox="0 0 16 16" fill="currentColor" style="width:14px;height:14px"><path d="M4 2.5a.5.5 0 0 1 .765-.424l9 5a.5.5 0 0 1 0 .848l-9 5A.5.5 0 0 1 4 12.5v-10z"/></svg> Run Organizer';
+    };
+  }
+
+  // ── Summary card ──────────────────────────────────────────────
+  function loadSummary() {
+    fetch('/api/stats')
+      .then(r => r.json())
+      .then(s => {
+        if (!s) return;
+
+        const mEl = document.getElementById('summary-metrics');
+        mEl.innerHTML = [
+          ['Moved',    s.moved,   '#22C55E'],
+          ['Skipped',  s.skipped, '#9CA3AF'],
+          ['Unknown',  s.unknown, s.unknown === 0 ? '#22C55E' : '#F59E0B'],
+        ].map(([label, val, color]) => `
+          <div>
+            <div class="summary-metric-val" style="color:${color}">${val.toLocaleString()}</div>
+            <div class="summary-metric-label">${label}</div>
+          </div>
+        `).join('');
+
+        const fEl = document.getElementById('summary-folders');
+        fEl.innerHTML = (s.folders || []).map(f => `
+          <div class="summary-folder-pill">
+            <div class="dot" style="background:${f.color}"></div>
+            <span class="folder-name">${f.name}</span>
+            <span class="folder-count">${f.count}</span>
+          </div>
+        `).join('');
+
+        document.getElementById('summary-card').classList.add('visible');
+        document.getElementById('summary-card').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      });
+  }
+</script>
+</body>
+</html>
