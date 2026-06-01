@@ -3,3 +3,6 @@ token.json
 credentials.json
 progress.json
 config.json
+node_modules/
+package.json
+package-lock.json

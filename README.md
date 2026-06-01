@@ -1,167 +1,289 @@
-# Google Drive Organizer
+# Drive Organizer
 
-An AI-powered script that categorizes and reorganizes a messy Google Drive into a clean, semester-based folder structure using Claude and the Google Drive API.
+AI-powered Google Drive organization. Fetches every file in your Drive, sends them to Claude in batches for classification, and moves each one into a clean folder hierarchy — with a three-layer date pipeline that gets semester or time-period placement right without manual labeling.
 
----
-
-## Problem Statement
-
-Google Drive's default behavior is essentially a flat pile. Files accumulate over years with no structure — course assignments mixed with résumés, mixed with DiversaTech budgets, mixed with photos from a weekend trip. After four years of college, a Drive with 2,500+ files is effectively unsearchable. The real cost isn't storage — it's the minutes lost every time you try to find something specific.
-
-Manual organization is deferred indefinitely because it's tedious, not because it's hard. The insight here is that the *decision* about where a file should go is cheap for a language model and expensive for a human. The actual file move is a one-line API call. So the right architecture is: use AI for classification, use automation for execution.
+Includes a web dashboard for viewing stats, browsing your organized Drive, and re-running the organizer.
 
 ---
 
-## User Persona
+## What it does
 
-**Andrew Vitt** — UC Berkeley senior (graduating SP26), president of DiversaTech, double-concentrating in IEOR and Data Science. Accumulates files from three categories simultaneously:
-
-- **Academic**: lecture notes, problem sets, projects, and exams across 20+ courses spanning eight semesters
-- **Organizational**: DiversaTech budgets, event planning docs, recruitment materials, and partnership decks shared with 40+ members
-- **Personal/Professional**: résumés, cover letters, bank statements, and photos
-
-The persona has strong opinions about folder names (IEOR 142A, not INDENG 142A) and course-semester accuracy (CS 61B was SP25, not SP26) but no patience for doing the organization manually. Technically comfortable enough to run a Python script, but not interested in maintaining one.
+- **Discovers** every file in My Drive via the Drive API (paginated, handles 2,000+ files)
+- **Classifies** files in batches of 30 using Claude — each file gets a destination path like `School/FA24/CS 101` or `Work & Internships`
+- **Infers time period** from file creation and modification dates so you don't have to label anything
+- **Moves** files into the correct folders, creating the hierarchy on the fly as needed
+- **Resumes** interrupted runs from where they left off — no reprocessing, no duplicates
+- **Dashboard** for stats, a live streaming log, an interactive Drive file browser, and a recent-activity feed
 
 ---
 
-## Solution Overview
+## Who it's for
 
-`organizer.py` fetches every file in the user's Drive, sends them to Claude in batches of 15 for categorical classification, then moves each file to the appropriate folder — creating the folder hierarchy on the fly if it doesn't exist.
+**Students** — Course files from multiple semesters accumulate into an unsearchable flat pile. Drive Organizer routes them to `School/SEMESTER/COURSE/` automatically, using file creation dates to assign the correct semester.
 
-The folder taxonomy:
+**Professionals** — Work documents, contracts, and project files get routed to `Work & Internships` or a custom top-level folder. Personal docs, photos, and financial records each get their own category.
+
+**Anyone** — If you've been dropping files into Google Drive for years and can never find anything, this fixes that in one run.
+
+---
+
+## Screenshots
+
+![Dashboard — stats overview](screenshots/dashboard.png)
+
+*Stats cards, category and semester breakdowns, and the run button.*
+
+![File browser and recent activity](screenshots/file-browser.png)
+
+*Interactive file browser with lazy-loaded Drive folders, and a recent-activity feed showing the last 20 moved files.*
+
+---
+
+## How it works
+
+### File discovery
+
+`organizer.py` authenticates via OAuth and lists every non-trashed file in My Drive. Each file's `id`, `name`, `mimeType`, `createdTime`, and `modifiedTime` are fetched in a single paginated call. Files that already live in an organized folder (i.e., not directly in Drive root) are skipped for speed.
+
+### AI categorization
+
+Files are sent to Claude in batches of 30. For each file, Claude returns a destination path:
+
+```
+School/FA24/CS 101
+Work & Internships
+Photos & Media
+Personal
+Finance
+```
+
+Batch size is a cost and latency tradeoff — 30 files per call keeps costs low while giving Claude enough context per file.
+
+### Three-layer semester pipeline
+
+Semester assignment is the hardest part of the problem. A file named `HW3.pdf` carries no temporal signal. The solution stacks three layers, each overriding the previous:
+
+1. **Creation date** — `createdTime` from the Drive API, mapped to a semester label using the `date_to_semester()` function. Edit this function to match your institution's academic calendar or replace it with any date → label mapping.
+2. **Modified date fallback** — if `modifiedTime` is 6+ months after `createdTime`, the modified date is used instead. Handles files created early and filled in later.
+3. **Course → semester map** — a dictionary in `config.json` that wins unconditionally. Use this for courses where the date heuristic would be wrong.
+
+### Post-processing
+
+Before any file moves, each path goes through:
+- **Course name normalization** — maps variant names (`CS61B → CS 61B`, `Calc → Math 1A`) to canonical folder names so duplicate folders don't appear
+- **Semester override** — applies the `course_semester_map` as a final correction layer
+
+### Resumable execution
+
+After each batch, processed file IDs are saved to `progress.json` as a `{file_id: destination_path}` map. If the run is interrupted, it resumes exactly where it left off. The same file is never processed twice in a single logical run.
+
+---
+
+## Getting started
+
+### Prerequisites
+
+```bash
+pip install google-auth-oauthlib google-api-python-client anthropic python-dotenv flask
+```
+
+Python 3.9+ required.
+
+### Google OAuth credentials
+
+1. Open [Google Cloud Console](https://console.cloud.google.com/) → APIs & Services → Library
+2. Enable the **Google Drive API**
+3. Go to Credentials → Create Credentials → OAuth 2.0 Client ID → Desktop app
+4. Download the JSON file, rename it to `credentials.json`, and place it in the project root
+
+On first run, a browser window opens for OAuth consent. Afterward, `token.json` handles re-authentication automatically. Both files are gitignored.
+
+### Anthropic API key
+
+```bash
+cp .env.example .env
+# Add your key:
+# ANTHROPIC_API_KEY=sk-ant-...
+```
+
+### Configuration
+
+```bash
+cp config.example.json config.json
+# Fill in your details
+```
+
+`config.json` is gitignored. `config.example.json` (committed) is the starting template.
+
+---
+
+## Configuration
+
+### config.json schema
+
+```json
+{
+  "owner_name": "Alex",
+  "owner_context": "a college student double-majoring in CS and economics",
+  "default_org_semester": "FA25",
+  "course_normalizations": {
+    "CS61A": "CS 61A",
+    "Calculus": "Math 1A",
+    "Anthropology": "Anthro 2AC"
+  },
+  "course_semester_map": {
+    "CS 61A": "FA23",
+    "Math 1A": "SP24",
+    "Anthro 2AC": "FA24"
+  }
+}
+```
+
+| Field | Purpose |
+|---|---|
+| `owner_name` | Your name — included in the Claude prompt for context |
+| `owner_context` | A short description of you — helps Claude with ambiguous files |
+| `default_org_semester` | Fallback semester label for student org or work files |
+| `course_normalizations` | Maps spelling variants to the canonical folder name |
+| `course_semester_map` | Final-authority override: course name → correct semester |
+
+### Folder taxonomy
+
+The default structure:
 
 ```
 School/
-  FA22/ SP23/ FA23/ SP24/ FA24/ SP25/ FA25/ SP26/
-    CS 61B/  ECON 140/  LEGALST 149/ ...
-DiversaTech/
-  SP26/
-    Finance/ Events/ Recruitment/ Operations/ Marketing/ General/
+  FA22/  SP23/  FA23/  SP24/  FA24/  SP25/  FA25/  SP26/
+    (course name)/
 Work & Internships/
 Personal/
 Finance/
 Photos & Media/
+(Student Org)/
+  SP26/
+    Finance/  Events/  Recruitment/  Operations/  Marketing/
 ```
 
-The run is resumable: processed file IDs are saved to `progress.json` after every batch, so an interrupted run picks up exactly where it left off. A `DRY_RUN` flag lets you preview every move before anything is touched.
+To change the top-level categories, edit `CATEGORY_META` in `app.py` and the classification prompt in `organizer.py`. The semester date ranges are in the `date_to_semester()` function — update them to match your academic calendar.
+
+### Course normalizations
+
+`course_normalizations` is applied first. It handles:
+- **Spacing** — `CS61B → CS 61B`
+- **Abbreviations** — `Anthropology → Anthro 2AC`
+- **Department renames** — `INDENG 142A → IEOR 142A`
+- **Common aliases** — `Calc → Math 1A`
+
+`course_semester_map` is applied after normalization. Keys must match the *canonical* name (post-normalization), not the raw Claude output.
 
 ---
 
-## Technical Decisions and Tradeoffs
+## Running
 
-### Three-Layer Semester Pipeline
+### Live run
 
-Semester assignment is the hardest part of the classification problem. A file named `HW3.pdf` carries almost no temporal signal. The solution stacks three layers, each overriding the previous:
+```bash
+python3 organizer.py
+```
 
-1. **File dates (primary)** — `createdTime` from the Drive API, or `modifiedTime` if the file was modified 6+ months after creation (indicating it was reworked in a later semester). Maps to Berkeley's academic calendar: months 1–7 → Spring, months 8–12 → Fall.
+Fetches all files, classifies them in batches, moves each one. Prints a summary on completion.
 
-2. **Claude's guess (fallback)** — Used only when the Drive API returns no date, which is rare but happens for some migrated files.
+### Dry run
 
-3. **`COURSE_SEMESTER_MAP` (final authority)** — A hardcoded dictionary of known course→semester facts specific to the user. `CS 61B → SP25` regardless of what the file date says. This layer wins unconditionally.
+```bash
+DRY_RUN=True python3 organizer.py
+```
 
-The tradeoff: this pipeline is deterministic for known courses and probabilistic for everything else. A file with `createdTime` of March 2024 will land in SP24 even if it was actually created during spring break for a fall course. The alternative — prompting Claude with full date context — was tested but produced inconsistent results and added latency to every batch.
+Prints every intended move without touching Drive. No folders are created, no files are moved. Use this as a pre-flight check.
 
-### Batch Prompting vs. Per-File Prompting
+### Stats (no API calls)
 
-Files are sent to Claude in batches of 15. This was a cost and latency decision: per-file prompting would be ~15× more expensive and slower. The tradeoff is that Claude has less context per file — it can't ask clarifying questions or compare files against each other. In practice, batch accuracy was high enough that the post-processing normalization layer caught most edge cases.
+```bash
+python3 organizer.py --stats
+```
 
-### Course Name Normalization
+Reads `progress.json` and prints a summary of the last run: total moved, skipped, unknown semester, and a file count per top-level folder. No Drive or Anthropic API calls required.
 
-Two separate dictionaries handle naming:
+### Web dashboard
 
-- **`COURSE_NORMALIZATIONS`** — fixes variant names Claude might return (`CS61B → CS 61B`, `Anthropology → Anthro 2AC`). Applied as the first post-processing step.
-- **`COURSE_SEMESTER_MAP`** — maps the canonical name to the correct semester. Applied last.
+```bash
+python3 app.py
+# Open http://localhost:5000
+```
 
-These are separate because the normalization problem (spelling) and the temporal problem (when was it taken) are logically independent. Conflating them would make both dictionaries harder to maintain.
-
-### Config-Driven Design
-
-All personal data — course history, owner name, organizational context — lives in `config.json`, which is gitignored. The committed repo contains only `config.example.json`. Anyone can clone the repo, fill in their own courses, and run it without modifying source code. The tradeoff is a setup step that requires users to understand the JSON schema.
-
-### Handling Unowned Files
-
-The Drive API returns all files visible to a user, including those shared with them. Owned files are moved by changing their parent folder. Unowned files can only have a folder *added* as an additional parent (Drive's version of a shortcut). In practice, this mostly fails with `"Increasing the number of parents is not allowed"` — a Drive API restriction on files shared from organizational accounts (e.g., DiversaTech shared docs). These files are logged as skipped but don't block the rest of the run.
+The dashboard shows:
+- **Stats cards** — moved, skipped, unknown semester, total tracked
+- **Category and semester breakdowns** with animated progress bars
+- **Run button** — streams live log output via Server-Sent Events while the organizer runs
+- **How it works** — three-step summary of the pipeline
+- **File browser** — interactive Drive explorer; click any category to expand it into semester folders, then into individual files
+- **Recent activity** — the last 20 moved files with destination path and relative timestamp, fetched from the Drive API
 
 ---
 
-## Key Metrics from the Run
+## Cleanup utilities
 
-Across a full pass of a 4-year Drive:
+**`delete_empty_folders.py`** — Finds and deletes every empty folder in My Drive, iterating until no more remain. Run this after a reorganization to clean up folders left behind at the source.
+
+```bash
+python3 delete_empty_folders.py
+```
+
+---
+
+## Results from a production run
+
+Run across a 4-year personal Drive with 2,500+ accumulated files:
 
 | Metric | Value |
 |---|---|
 | Total files found | 2,583 |
 | Successfully categorized and moved | 434 |
-| Skipped (unowned/permission errors) | 1,609 |
+| Skipped (unowned / permission errors) | 1,609 |
 | Unknown Semester | **0** |
-| Empty folders deleted (post-run cleanup) | 92 |
+| Empty folders deleted (post-run) | 92 |
 | Batches processed | 173 |
-| API retry events (rate limits) | ~8 batch failures, all recovered |
+| API retry events (rate limits) | ~8 batches, all recovered |
 
-**Skipped rate is high by design.** The majority of files in the Drive are shared DiversaTech documents owned by the org account — they show up in the file listing but can't be moved by a non-owner. The 434 successfully moved files represent essentially the entire owned-file corpus.
+**Why is the skipped rate so high?** Files owned by shared or organizational Google accounts appear in your personal Drive listing but are immovable by a non-owner. These are logged as skipped but don't interrupt the run. The 434 successfully moved files represent essentially the entire personally-owned file corpus.
 
 **Destination breakdown:**
 
 | Folder | Files |
 |---|---|
-| DiversaTech | 707 |
-| School | 543 |
-| Photos & Media | 436 |
-| Work & Internships | 185 |
-| Personal | 167 |
-| Finance | 5 |
+| Photos & Media | 207 |
+| School | 139 |
+| Work & Internships | 53 |
+| Personal | 31 |
+| Finance | 4 |
 
-**Zero Unknown Semester** is the standout result — the `createdTime`/`modifiedTime` date pipeline handled semester assignment for every single file without falling back to a guess.
+**Zero Unknown Semester** is the standout result. The three-layer pipeline — creation date → modified date fallback → course map override — assigned a correct semester to every single school file without a manual guess.
 
 ---
 
 ## Limitations
 
-**Shared files can't be moved.** Files owned by an organizational Google account (e.g., the DiversaTech Drive) show up in your personal Drive listing but are immovable. The script logs these and moves on. This accounts for roughly 80% of the "skipped" count.
+**Shared files can't be moved.** Files owned by an org account show up in your listing but are immovable. They're logged as skipped.
 
-**Filename ambiguity.** Files with generic names (`HW3.pdf`, `Midterm.docx`, `Notes`) carry no course signal. These rely entirely on the creation date for semester placement and Claude for course assignment. The date pipeline resolved all ambiguity in the v4 run, but files with missing Drive metadata could still land in `Unknown Semester`.
+**Generic filenames.** Files named `HW3.pdf` or `Notes` carry no course signal and rely entirely on creation date for semester placement.
 
-**Course name spacing.** A mismatch between how Claude formats a course (`HS 345`) and how the `COURSE_SEMESTER_MAP` key is spelled (`HS345`) silently bypasses the override. The normalization layer catches most of these, but edge cases require manual dictionary additions.
+**No undo.** `progress.json` records where each file went, giving you a reference map — but reversing moves requires a manual script or restoring from a Drive snapshot.
 
-**No undo.** Once files are moved, there's no automated rollback. The `progress.json` file tracks where each file was sent, which gives you a map, but reversing the moves requires either a manual re-run with inverted logic or restoring from a Drive snapshot.
-
-**Single-user, single-Drive.** The script runs against whichever Drive is authenticated. It has no concept of shared drives or multi-account setups.
+**Academic calendar assumptions.** `date_to_semester()` maps calendar months to semester labels using a specific date range. Edit it for your institution or replace it with any date → label function for non-academic use.
 
 ---
 
-## Future Roadmap
+## Contributing
 
-**Better handling of shared files.** If the user is an admin on the shared Drive, the same API calls work — just authenticated as the org account. A multi-account mode that prompts for separate credentials per Drive would cover the DiversaTech file gap.
+Issues and pull requests welcome. High-impact areas:
 
-**Incremental runs.** Currently the script re-fetches all 2,500+ files on every run. A `modifiedTime > lastRunTimestamp` filter in the API query would make re-runs near-instant, enabling a daily scheduled job.
-
-**Confidence scores and quarantine.** Claude could return a confidence estimate alongside each path. Low-confidence files would be routed to a `Review/` folder instead of being moved immediately — a human-in-the-loop checkpoint before the move.
-
-**Folder watching via webhook.** The Drive API supports push notifications when files change. A small server could receive these events and classify new files in real time as they're added to Drive, keeping the structure clean without ever needing a bulk re-run.
-
-**Richer config schema.** The current `config.json` covers courses and semesters. A fuller schema would let users define custom top-level categories, subcategory rules, and exclusion patterns (e.g., "never move files in this folder ID") without touching the source code.
+- **Incremental runs** — filter `modifiedTime > lastRun` to process only new files
+- **Confidence scoring** — have Claude return a confidence estimate; route low-confidence files to `Review/` for human verification
+- **Multi-account support** — separate credential sets for personal and organizational Drives
+- **Config-driven taxonomy** — move the top-level category list and prompt into `config.json` so no source code changes are needed
 
 ---
 
-## Setup
+## License
 
-```bash
-git clone <repo>
-cd driver
-
-cp config.example.json config.json
-# Edit config.json with your name, courses, and semester history
-
-pip install google-auth-oauthlib google-api-python-client anthropic python-dotenv
-
-cp .env.example .env
-# Add your Anthropic API key to .env
-
-# Place your Google credentials.json in this directory
-# (Download from Google Cloud Console → APIs & Services → Credentials)
-
-python3 organizer.py        # live run
-DRY_RUN=True python3 organizer.py  # preview only (or set DRY_RUN = True in the file)
-```
-
-On first run, a browser window will open for Google OAuth. After that, `token.json` handles re-authentication automatically.
+MIT

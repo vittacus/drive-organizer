@@ -696,12 +696,64 @@
       animation: spin 0.6s linear infinite;
     }
 
+    /* ── How it works ───────────────────────────────────────────── */
+    .hiw {
+      display: flex;
+      align-items: center;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      padding: 14px 24px;
+      margin-bottom: 24px;
+      gap: 0;
+    }
+
+    .hiw-step {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex: 1;
+      min-width: 0;
+    }
+
+    .hiw-num {
+      width: 22px; height: 22px;
+      border-radius: 50%;
+      background: var(--accent-bg);
+      color: var(--accent);
+      font-size: 11px;
+      font-weight: 700;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .hiw-icon { font-size: 16px; flex-shrink: 0; }
+
+    .hiw-text {
+      font-size: 13px;
+      color: var(--text-2);
+      line-height: 1.3;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .hiw-arrow {
+      color: var(--border);
+      font-size: 16px;
+      padding: 0 16px;
+      flex-shrink: 0;
+    }
+
     /* ── Responsive ──────────────────────────────────────────────── */
     @media (max-width: 760px) {
       .metrics    { grid-template-columns: repeat(2, 1fr); }
       .grid-2     { grid-template-columns: 1fr; }
       .bottom-grid { grid-template-columns: 1fr; }
       .run-header { flex-direction: column; align-items: flex-start; gap: 16px; }
+      .hiw        { flex-direction: column; align-items: flex-start; gap: 10px; }
+      .hiw-arrow  { display: none; }
     }
   </style>
 </head>
@@ -844,6 +896,27 @@
     <div class="summary-body">
       <div class="summary-metrics" id="summary-metrics"></div>
       <div class="summary-folders" id="summary-folders"></div>
+    </div>
+  </div>
+
+  <!-- ── How it works ───────────────────────────────────────────── -->
+  <div class="hiw">
+    <div class="hiw-step">
+      <span class="hiw-num">1</span>
+      <span class="hiw-icon">🔑</span>
+      <span class="hiw-text">Connects to Google Drive via OAuth</span>
+    </div>
+    <span class="hiw-arrow">→</span>
+    <div class="hiw-step">
+      <span class="hiw-num">2</span>
+      <span class="hiw-icon">🤖</span>
+      <span class="hiw-text">AI categorizes files in batches by name and creation date</span>
+    </div>
+    <span class="hiw-arrow">→</span>
+    <div class="hiw-step">
+      <span class="hiw-num">3</span>
+      <span class="hiw-icon">📁</span>
+      <span class="hiw-text">Moves files into organized semester folders</span>
     </div>
   </div>
 
