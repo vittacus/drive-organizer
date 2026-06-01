@@ -44,7 +44,7 @@
     }
 
     /* ── Layout ─────────────────────────────────────────────────── */
-    .container { max-width: 860px; margin: 0 auto; }
+    .container { max-width: 1060px; margin: 0 auto; }
 
     /* ── Header ─────────────────────────────────────────────────── */
     .header {
@@ -150,6 +150,16 @@
       color: var(--text-2);
       text-transform: uppercase;
       letter-spacing: 0.5px;
+    }
+
+    .card-badge {
+      font-size: 11px;
+      font-weight: 500;
+      color: var(--text-3);
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 20px;
+      padding: 2px 8px;
     }
 
     .card-body { padding: 16px 20px; }
@@ -380,6 +390,7 @@
       box-shadow: var(--shadow-md);
       overflow: hidden;
       animation: slideUp 0.35s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+      margin-bottom: 24px;
     }
 
     #summary-card.visible { display: block; }
@@ -483,10 +494,213 @@
     }
     .empty p { font-size: 14px; margin-top: 8px; }
 
+    /* ── Bottom Grid ─────────────────────────────────────────────── */
+    .bottom-grid {
+      display: grid;
+      grid-template-columns: 3fr 2fr;
+      gap: 12px;
+      align-items: start;
+      margin-bottom: 24px;
+    }
+
+    /* ── File Browser ────────────────────────────────────────────── */
+    .browser-scroll {
+      max-height: 540px;
+      overflow-y: auto;
+    }
+    .browser-scroll::-webkit-scrollbar { width: 4px; }
+    .browser-scroll::-webkit-scrollbar-track { background: transparent; }
+    .browser-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    /* each node = row + collapsible children */
+    .b-node { border-bottom: 1px solid var(--border-soft); }
+    .b-node:last-child { border-bottom: none; }
+
+    .b-row {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 9px 16px;
+      cursor: pointer;
+      user-select: none;
+      transition: background 0.1s;
+    }
+    .b-row:hover { background: var(--bg); }
+
+    /* indent levels */
+    .b-row.l1 { padding-left: 32px; }
+    .b-row.l2 { padding-left: 48px; }
+
+    .b-chevron {
+      width: 12px; height: 12px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+      color: var(--text-3);
+      transition: transform 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+    .b-chevron.open { transform: rotate(90deg); }
+
+    .b-icon {
+      font-size: 14px;
+      flex-shrink: 0;
+      line-height: 1;
+    }
+
+    .b-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+      flex: 1;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+    .b-row.l1 .b-name,
+    .b-row.l2 .b-name { font-weight: 400; color: var(--text-2); }
+
+    .b-count {
+      font-size: 11.5px;
+      font-weight: 500;
+      color: var(--text-3);
+      flex-shrink: 0;
+    }
+
+    /* collapsible children */
+    .b-children {
+      height: 0;
+      overflow: hidden;
+      transition: height 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    /* file rows (non-folder) */
+    .b-file {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 7px 16px 7px 48px;
+      text-decoration: none;
+      color: var(--text-2);
+      font-size: 12.5px;
+      border-bottom: 1px solid var(--border-soft);
+      transition: background 0.1s, color 0.1s;
+    }
+    .b-file:last-child { border-bottom: none; }
+    .b-file:hover { background: var(--bg); color: var(--accent); }
+    .b-file-icon { font-size: 13px; flex-shrink: 0; }
+    .b-file-name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    /* level-2 files (inside semester folder) */
+    .b-file.l2 { padding-left: 64px; }
+
+    /* inline states */
+    .b-state {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      font-size: 12.5px;
+      color: var(--text-3);
+    }
+    .b-state.l1 { padding-left: 32px; }
+    .b-state.l2 { padding-left: 48px; }
+    .b-inline-spinner {
+      width: 11px; height: 11px;
+      border: 1.5px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+      flex-shrink: 0;
+    }
+    .b-error-text { color: var(--red); font-size: 12px; padding: 8px 16px; }
+
+    /* ── Activity Feed ───────────────────────────────────────────── */
+    .activity-scroll {
+      max-height: 540px;
+      overflow-y: auto;
+    }
+    .activity-scroll::-webkit-scrollbar { width: 4px; }
+    .activity-scroll::-webkit-scrollbar-track { background: transparent; }
+    .activity-scroll::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+    .act-item {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      padding: 11px 16px;
+      border-bottom: 1px solid var(--border-soft);
+      text-decoration: none;
+      transition: background 0.1s;
+    }
+    .act-item:last-child { border-bottom: none; }
+    .act-item:hover { background: var(--bg); }
+
+    .act-icon {
+      font-size: 15px;
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+
+    .act-body { flex: 1; min-width: 0; }
+
+    .act-name {
+      font-size: 13px;
+      font-weight: 500;
+      color: var(--text);
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      margin-bottom: 3px;
+    }
+
+    .act-path {
+      font-size: 11.5px;
+      color: var(--text-3);
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      overflow: hidden;
+    }
+
+    .act-cat {
+      font-weight: 600;
+      flex-shrink: 0;
+    }
+
+    .act-path-rest {
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+    }
+
+    .act-time {
+      font-size: 11px;
+      color: var(--text-3);
+      flex-shrink: 0;
+      margin-top: 2px;
+      font-family: 'JetBrains Mono', monospace;
+    }
+
+    .act-loading {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 20px 16px;
+      font-size: 13px;
+      color: var(--text-3);
+    }
+    .act-inline-spinner {
+      width: 13px; height: 13px;
+      border: 1.5px solid var(--border);
+      border-top-color: var(--accent);
+      border-radius: 50%;
+      animation: spin 0.6s linear infinite;
+    }
+
     /* ── Responsive ──────────────────────────────────────────────── */
-    @media (max-width: 640px) {
-      .metrics   { grid-template-columns: repeat(2, 1fr); }
-      .grid-2    { grid-template-columns: 1fr; }
+    @media (max-width: 760px) {
+      .metrics    { grid-template-columns: repeat(2, 1fr); }
+      .grid-2     { grid-template-columns: 1fr; }
+      .bottom-grid { grid-template-columns: 1fr; }
       .run-header { flex-direction: column; align-items: flex-start; gap: 16px; }
     }
   </style>
@@ -531,7 +745,6 @@
   <!-- ── Two-column: breakdown + semesters ───────────────────── -->
   <div class="grid-2">
 
-    <!-- Category Breakdown -->
     <div class="card">
       <div class="card-header">
         <span class="card-title">By Category</span>
@@ -552,7 +765,6 @@
       </div>
     </div>
 
-    <!-- School Semester Breakdown -->
     <div class="card">
       <div class="card-header">
         <span class="card-title">School · By Semester</span>
@@ -583,7 +795,6 @@
   </div>
 
   {% else %}
-  <!-- No data yet -->
   <div class="card" style="margin-bottom: 24px;">
     <div class="empty">
       <div style="font-size: 32px; margin-bottom: 12px;">📭</div>
@@ -607,7 +818,6 @@
       </button>
     </div>
 
-    <!-- Log output — hidden until run starts -->
     <div class="log-wrap" id="log-wrap">
       <div class="log-toolbar">
         <div class="log-dots">
@@ -637,33 +847,57 @@
     </div>
   </div>
 
+  <!-- ── Bottom: File Browser + Activity ─────────────────────── -->
+  <div class="bottom-grid">
+
+    <!-- File Browser -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">File Browser</span>
+        <span class="card-badge" id="browser-badge">Loading…</span>
+      </div>
+      <div class="browser-scroll" id="browser-root">
+        <div class="b-state">
+          <div class="b-inline-spinner"></div>
+          Connecting to Drive…
+        </div>
+      </div>
+    </div>
+
+    <!-- Activity Feed -->
+    <div class="card">
+      <div class="card-header">
+        <span class="card-title">Recent Activity</span>
+        <span class="card-badge">Last 20 moves</span>
+      </div>
+      <div class="activity-scroll" id="activity-root">
+        <div class="act-loading">
+          <div class="act-inline-spinner"></div>
+          Loading…
+        </div>
+      </div>
+    </div>
+
+  </div>
+
 </div><!-- /container -->
 
 <script>
-  // ── Animate bars on load ──────────────────────────────────────
+  // ── Animate stats bars on load ────────────────────────────────
   window.addEventListener('load', () => {
     const animate = (selector, prop) => {
       document.querySelectorAll(selector).forEach((el, i) => {
-        setTimeout(() => {
-          el.style[prop] = el.dataset.pct + '%';
-        }, 120 + i * 60);
+        setTimeout(() => { el.style[prop] = el.dataset.pct + '%'; }, 120 + i * 60);
       });
     };
     animate('.category-bar', 'width');
     animate('.semester-bar', 'width');
+
+    initBrowser();
+    initActivity();
   });
 
   // ── Log colorizer ─────────────────────────────────────────────
-  const CATEGORY_COLORS = {
-    'School': '#5B6AF0', 'DiversaTech': '#8B5CF6',
-    'Photos & Media': '#F59E0B', 'Work & Internships': '#10B981',
-    'Personal': '#6B7280', 'Finance': '#EF4444',
-  };
-  const CATEGORY_ICONS = {
-    'School': '📚', 'DiversaTech': '🔗', 'Photos & Media': '📷',
-    'Work & Internships': '💼', 'Personal': '📄', 'Finance': '💳',
-  };
-
   function lineClass(text) {
     if (/^\s+[✓✗]/.test(text)) {
       if (text.includes('✓')) return 'log-success';
@@ -679,7 +913,7 @@
     const out  = document.getElementById('log-output');
     const line = document.createElement('span');
     line.className = 'log-line ' + lineClass(text);
-    line.textContent = text || ' ';
+    line.textContent = text || ' ';
     out.appendChild(line);
     out.appendChild(document.createTextNode('\n'));
     out.scrollTop = out.scrollHeight;
@@ -692,13 +926,11 @@
     const status = document.getElementById('log-status');
     const output = document.getElementById('log-output');
 
-    // Reset
     output.innerHTML = '';
     document.getElementById('summary-card').classList.remove('visible');
 
-    // Button → loading state
-    btn.disabled   = true;
-    btn.innerHTML  = '<div class="spinner"></div> Running…';
+    btn.disabled  = true;
+    btn.innerHTML = '<div class="spinner"></div> Running…';
     wrap.classList.add('visible');
     status.textContent = 'python3.11 -u organizer.py';
 
@@ -711,7 +943,7 @@
         btn.disabled  = false;
         btn.innerHTML = '<svg viewBox="0 0 16 16" fill="currentColor" style="width:14px;height:14px"><path d="M4 2.5a.5.5 0 0 1 .765-.424l9 5a.5.5 0 0 1 0 .848l-9 5A.5.5 0 0 1 4 12.5v-10z"/></svg> Run Again';
         status.textContent = msg.code === 0 ? '✓ exited 0' : `✗ exited ${msg.code}`;
-        if (msg.code === 0) loadSummary();
+        if (msg.code === 0) { loadSummary(); initActivity(); }
       } else if (msg.line !== undefined) {
         appendLog(msg.line);
       }
@@ -732,11 +964,10 @@
       .then(s => {
         if (!s) return;
 
-        const mEl = document.getElementById('summary-metrics');
-        mEl.innerHTML = [
-          ['Moved',    s.moved,   '#22C55E'],
-          ['Skipped',  s.skipped, '#9CA3AF'],
-          ['Unknown',  s.unknown, s.unknown === 0 ? '#22C55E' : '#F59E0B'],
+        document.getElementById('summary-metrics').innerHTML = [
+          ['Moved',   s.moved,   '#22C55E'],
+          ['Skipped', s.skipped, '#9CA3AF'],
+          ['Unknown', s.unknown, s.unknown === 0 ? '#22C55E' : '#F59E0B'],
         ].map(([label, val, color]) => `
           <div>
             <div class="summary-metric-val" style="color:${color}">${val.toLocaleString()}</div>
@@ -744,8 +975,7 @@
           </div>
         `).join('');
 
-        const fEl = document.getElementById('summary-folders');
-        fEl.innerHTML = (s.folders || []).map(f => `
+        document.getElementById('summary-folders').innerHTML = (s.folders || []).map(f => `
           <div class="summary-folder-pill">
             <div class="dot" style="background:${f.color}"></div>
             <span class="folder-name">${f.name}</span>
@@ -756,6 +986,214 @@
         document.getElementById('summary-card').classList.add('visible');
         document.getElementById('summary-card').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       });
+  }
+
+  // ──────────────────────────────────────────────────────────────
+  // File Browser
+  // ──────────────────────────────────────────────────────────────
+
+  const CATEGORY_META = {
+    'School':             { icon: '📚', color: '#5B6AF0' },
+    'DiversaTech':        { icon: '🔗', color: '#8B5CF6' },
+    'Photos & Media':     { icon: '📷', color: '#F59E0B' },
+    'Work & Internships': { icon: '💼', color: '#10B981' },
+    'Personal':           { icon: '📄', color: '#6B7280' },
+    'Finance':            { icon: '💳', color: '#EF4444' },
+  };
+
+  const MIME_ICONS = {
+    'application/vnd.google-apps.document':     '📝',
+    'application/vnd.google-apps.spreadsheet':  '📊',
+    'application/vnd.google-apps.presentation': '📊',
+    'application/vnd.google-apps.form':         '📋',
+    'application/vnd.google-apps.drawing':      '🎨',
+    'application/vnd.google-apps.script':       '⚡',
+    'application/pdf':                          '📄',
+  };
+
+  function mimeIcon(mimeType) {
+    if (!mimeType) return '📄';
+    if (MIME_ICONS[mimeType]) return MIME_ICONS[mimeType];
+    if (mimeType.startsWith('image/')) return '🖼';
+    if (mimeType.startsWith('video/')) return '🎬';
+    if (mimeType.startsWith('audio/')) return '🎵';
+    return '📄';
+  }
+
+  const CHEVRON = `<svg width="9" height="9" viewBox="0 0 9 9" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2.5 1.5l3.5 2.5-3.5 2.5"/></svg>`;
+
+  function expand(el) {
+    el.style.height = el.scrollHeight + 'px';
+    el.addEventListener('transitionend', function h() {
+      if (el.dataset.open === '1') el.style.height = 'auto';
+      el.removeEventListener('transitionend', h);
+    });
+  }
+
+  function collapse(el) {
+    el.style.height = el.scrollHeight + 'px';
+    requestAnimationFrame(() => requestAnimationFrame(() => { el.style.height = '0'; }));
+  }
+
+  async function toggleNode(folderId, rowEl, level) {
+    const childrenEl = document.getElementById('ch-' + folderId);
+    const chevronEl  = rowEl.querySelector('.b-chevron');
+    const isOpen     = childrenEl.dataset.open === '1';
+
+    if (isOpen) {
+      collapse(childrenEl);
+      childrenEl.dataset.open = '0';
+      chevronEl.classList.remove('open');
+      return;
+    }
+
+    if (!childrenEl.dataset.loaded) {
+      // Show inline spinner in the chevron while loading
+      chevronEl.innerHTML = `<div class="b-inline-spinner" style="width:9px;height:9px;border-width:1.2px"></div>`;
+
+      const res   = await fetch('/api/browse/' + folderId);
+      const items = await res.json();
+
+      if (items.error) {
+        childrenEl.innerHTML = `<div class="b-error-text">${items.error}</div>`;
+      } else if (items.length === 0) {
+        childrenEl.innerHTML = `<div class="b-state l${level + 1}">Empty folder</div>`;
+      } else {
+        childrenEl.innerHTML = buildChildren(items, level + 1);
+      }
+      childrenEl.dataset.loaded = '1';
+      chevronEl.innerHTML = CHEVRON;
+    }
+
+    chevronEl.classList.add('open');
+    childrenEl.dataset.open = '1';
+    expand(childrenEl);
+  }
+
+  function buildChildren(items, level) {
+    const levelClass = `l${level}`;
+    return items.map(item => {
+      if (item.isFolder) {
+        const icon = level === 1 ? (CATEGORY_META[item.name]?.icon ?? '📁') : '📁';
+        return `
+          <div class="b-node">
+            <div class="b-row ${levelClass}" onclick="toggleNode('${item.id}', this, ${level})">
+              <span class="b-chevron">${CHEVRON}</span>
+              <span class="b-icon">${icon}</span>
+              <span class="b-name">${escHtml(item.name)}</span>
+            </div>
+            <div class="b-children" id="ch-${item.id}"></div>
+          </div>
+        `;
+      } else {
+        const link = item.webViewLink ? `href="${item.webViewLink}" target="_blank" rel="noopener"` : '';
+        return `
+          <a class="b-file l${level}" ${link}>
+            <span class="b-file-icon">${mimeIcon(item.mimeType)}</span>
+            <span class="b-file-name">${escHtml(item.name)}</span>
+          </a>
+        `;
+      }
+    }).join('');
+  }
+
+  async function initBrowser() {
+    const rootEl  = document.getElementById('browser-root');
+    const badgeEl = document.getElementById('browser-badge');
+
+    const res  = await fetch('/api/browse');
+    const data = await res.json();
+
+    if (data.error) {
+      rootEl.innerHTML  = `<div class="b-state" style="color:var(--red)">${data.error}</div>`;
+      badgeEl.textContent = 'Error';
+      return;
+    }
+
+    if (data.length === 0) {
+      rootEl.innerHTML  = `<div class="b-state">No folders found in Drive root.</div>`;
+      badgeEl.textContent = '0 folders';
+      return;
+    }
+
+    badgeEl.textContent = `${data.length} folders`;
+
+    rootEl.innerHTML = data.map(folder => `
+      <div class="b-node">
+        <div class="b-row" onclick="toggleNode('${folder.id}', this, 0)">
+          <span class="b-chevron">${CHEVRON}</span>
+          <span class="b-icon">${folder.icon}</span>
+          <span class="b-name">${escHtml(folder.name)}</span>
+        </div>
+        <div class="b-children" id="ch-${folder.id}"></div>
+      </div>
+    `).join('');
+  }
+
+  // ──────────────────────────────────────────────────────────────
+  // Activity Feed
+  // ──────────────────────────────────────────────────────────────
+
+  function timeAgo(isoStr) {
+    if (!isoStr) return '';
+    const diff  = Date.now() - new Date(isoStr);
+    const mins  = Math.floor(diff / 60000);
+    const hours = Math.floor(mins / 60);
+    const days  = Math.floor(hours / 24);
+    if (days  > 0) return `${days}d`;
+    if (hours > 0) return `${hours}h`;
+    if (mins  > 0) return `${mins}m`;
+    return 'now';
+  }
+
+  function pathParts(path) {
+    const parts = path.split('/');
+    const cat   = parts[0];
+    const meta  = CATEGORY_META[cat] ?? { color: '#6B7280' };
+    const rest  = parts.slice(1).join(' › ');
+    return { cat, color: meta.color, rest };
+  }
+
+  async function initActivity() {
+    const rootEl = document.getElementById('activity-root');
+    rootEl.innerHTML = `<div class="act-loading"><div class="act-inline-spinner"></div>Fetching from Drive…</div>`;
+
+    const res  = await fetch('/api/activity');
+    const data = await res.json();
+
+    if (data.error) {
+      rootEl.innerHTML = `<div class="b-state" style="color:var(--red)">${data.error}</div>`;
+      return;
+    }
+
+    if (data.length === 0) {
+      rootEl.innerHTML = `<div class="b-state">No activity yet.</div>`;
+      return;
+    }
+
+    rootEl.innerHTML = data.map(item => {
+      const { cat, color, rest } = pathParts(item.path);
+      const link = item.webViewLink
+        ? `href="${item.webViewLink}" target="_blank" rel="noopener"`
+        : '';
+      return `
+        <a class="act-item" ${link}>
+          <span class="act-icon">${mimeIcon(item.mimeType)}</span>
+          <div class="act-body">
+            <div class="act-name">${escHtml(item.name)}</div>
+            <div class="act-path">
+              <span class="act-cat" style="color:${color}">${escHtml(cat)}</span>
+              ${rest ? `<span style="color:var(--border)">›</span><span class="act-path-rest">${escHtml(rest)}</span>` : ''}
+            </div>
+          </div>
+          <span class="act-time">${timeAgo(item.modifiedTime)}</span>
+        </a>
+      `;
+    }).join('');
+  }
+
+  function escHtml(str) {
+    return str.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
 </script>
 </body>
