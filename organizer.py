@@ -1,6 +1,7 @@
 import argparse
 import os
 import json
+import sys
 import time
 from datetime import datetime
 from dotenv import load_dotenv
@@ -25,9 +26,11 @@ BATCH_SIZE = 30
 # ---------------------------------------------------------------------------
 
 if not os.path.exists("config.json"):
-    raise FileNotFoundError(
-        "config.json not found — copy config.example.json, fill in your settings, and retry."
-    )
+    from setup import run_wizard
+    run_wizard()
+    print("Run this command again to start organizing your Drive.")
+    sys.exit(0)
+
 with open("config.json") as f:
     _cfg = json.load(f)
 
@@ -36,6 +39,8 @@ COURSE_SEMESTER_MAP   = _cfg.get("course_semester_map", {})
 OWNER_NAME            = _cfg.get("owner_name", "the user")
 OWNER_CONTEXT         = _cfg.get("owner_context", "a student")
 DEFAULT_ORG_SEMESTER  = _cfg.get("default_org_semester", "SP26")
+USER_TYPE             = _cfg.get("user_type", "student")
+CATEGORIES            = _cfg.get("categories", ["School", "Work & Internships", "Personal", "Finance", "Photos & Media"])
 
 # ---------------------------------------------------------------------------
 # Path normalization
@@ -49,19 +54,15 @@ def normalize_path(path):
 
 
 def date_to_semester(ts):
-    """Map an ISO timestamp to a Berkeley semester label, or None if out of range."""
+    """Map an ISO timestamp to a semester label (e.g. FA25, SP26)."""
     if not ts:
         return None
     try:
         dt = datetime.fromisoformat(ts.replace('Z', '+00:00'))
-        year, month = dt.year, dt.month
     except (ValueError, AttributeError):
         return None
-    if year < 2022 or year > 2026:
-        return None
-    if year == 2022 and month < 8:
-        return None  # before FA22 enrollment
-    return f"{'SP' if month <= 7 else 'FA'}{str(year)[2:]}"
+    sem = 'SP' if dt.month <= 7 else 'FA'
+    return f"{sem}{str(dt.year)[2:]}"
 
 
 def pick_date(file):
@@ -246,44 +247,80 @@ def cleanup_empty_folders(service):
 # Claude categorization
 # ---------------------------------------------------------------------------
 
-def categorize_batch(client, files_batch):
+_STANDARD_RULES = {
+    'School': (
+        "- Course and class files → School/<SEMESTER>/<Course Name>  "
+        "(e.g. School/FA25/Biology 101)\n"
+        "  Any semester guess is fine — it's corrected automatically from the file's creation date."
+    ),
+    'Work & Internships': "- Resumes, job applications, internship files, career documents → Work & Internships",
+    'Work':               "- Work documents, projects, contracts, career files → Work",
+    'Finance':            "- Bank statements, budgets, invoices, tax documents, receipts → Finance",
+    'Photos & Media':     "- Photos, videos, audio files, and other media → Photos & Media",
+    'Personal':           "- Personal documents, notes, and anything that doesn't fit elsewhere → Personal",
+    'Documents':          "- General documents, downloads, and text files → Documents",
+}
+
+
+def build_prompt(files_batch):
     file_list = "\n".join(
         f"{i+1}. Name: '{f['name']}' | Type: '{f['mimeType']}'"
         for i, f in enumerate(files_batch)
     )
-    prompt = f"""You are organizing Google Drive files for {OWNER_NAME}, {OWNER_CONTEXT}.
 
-For each file, return a folder path. Reply with ONLY a JSON array of paths in the same order as the files.
-Example: ["School/SP26/IEOR 142", "DiversaTech/{DEFAULT_ORG_SEMESTER}/Finance", "Personal"]
+    categories_str = ", ".join(CATEGORIES)
 
-SEMESTER — School file semesters are overridden automatically from file creation
-dates, so any reasonable guess is fine for them. For DiversaTech files, use
-{DEFAULT_ORG_SEMESTER} if no semester clue is present. For other paths, no semester needed.
+    # Build example output using the first couple categories
+    example_parts = []
+    if 'School' in CATEGORIES and USER_TYPE == 'student':
+        example_parts.append(f'"School/{DEFAULT_ORG_SEMESTER}/Biology 101"')
+    for cat in CATEGORIES:
+        if cat != 'School' and len(example_parts) < 2:
+            example_parts.append(f'"{cat}"')
+    example = "[" + ", ".join(example_parts) + "]"
 
+    # Build rules for each category
+    rules = []
+    for cat in CATEGORIES:
+        if cat in _STANDARD_RULES:
+            rules.append(_STANDARD_RULES[cat])
+        else:
+            rules.append(f"- Files clearly related to {cat} → {cat}")
+    fallback = next((c for c in ['Personal', 'Documents'] if c in CATEGORIES), CATEGORIES[-1])
+    rules.append(f"- When genuinely unclear → {fallback}")
+    rules_str = "\n".join(rules)
+
+    # Semester context (students only)
+    semester_section = ""
+    if USER_TYPE == 'student' and 'School' in CATEGORIES:
+        semester_section = (
+            f"\nSEMESTER: School file semesters are corrected automatically from creation dates. "
+            f"Any guess is fine. Default to {DEFAULT_ORG_SEMESTER} when there's no clue.\n"
+        )
+
+    # Course name normalizations
+    norm_section = ""
+    if COURSE_NORMALIZATIONS:
+        norm_lines = "\n".join(f"  - {k} → \"{v}\"" for k, v in COURSE_NORMALIZATIONS.items())
+        norm_section = f"\nCOURSE NAME NORMALIZATION — always use these exact names:\n{norm_lines}\n"
+
+    return f"""You are organizing Google Drive files for {OWNER_NAME}, {OWNER_CONTEXT}.
+
+For each file, choose the best folder path from: {categories_str}
+Reply with ONLY a JSON array of paths in the same order as the input.
+Example: {example}
+{semester_section}
 RULES:
-- School files → School/<SEMESTER>/<Course Name> (e.g. School/FA25/GPP 115)
-- BCEC → School/<SEMESTER>/BCEC (it is a school course, not a job category)
-- DiversaTech files → DiversaTech/<SEMESTER>/<Subcategory>
-  Subcategories: Finance, Events, Recruitment, Operations, Marketing, General
-- Personal documents → Personal
-- Bank/budget/receipts → Finance
-- Photos/videos → Photos & Media
-- Job/internship/resume → Work & Internships
-- Unclear → Personal
-
-COURSE NAME NORMALIZATION (use these exact names, no variations):
-- Anthropology, 2AC, Anthropology 2AC → "Anthro 2AC"
-- CS61A → "CS 61A" | CS61B → "CS 61B" (keep separate, just add the space)
-- Data or Data Science (intro course) → "Data 8" | Data C104 → "DATA 104"
-- Economics 140 → "ECON 140" (other ECON courses keep their number as-is)
-- INDENG 142A → "IEOR 142A" (other INDENG courses keep INDENG prefix)
-- Calculus or Differential Equations → "Math"
-
+{rules_str}
+{norm_section}
 FILES:
 {file_list}
 
 Return ONLY the JSON array, nothing else."""
 
+
+def categorize_batch(client, files_batch):
+    prompt = build_prompt(files_batch)
     response = client.messages.create(
         model="claude-sonnet-4-6",
         max_tokens=1024,

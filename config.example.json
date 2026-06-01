@@ -1,7 +1,9 @@
 {
   "owner_name": "Your Name",
   "owner_context": "a college student",
-  "default_org_semester": "SP26",
+  "user_type": "student",
+  "categories": ["School", "Work & Internships", "Personal", "Finance", "Photos & Media"],
+  "default_org_semester": "FA26",
   "course_normalizations": {
     "CS61A": "CS 61A",
     "CS61B": "CS 61B"

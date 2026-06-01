@@ -18,14 +18,43 @@ TOKEN_FILE    = os.path.join(BASE_DIR, 'token.json')
 
 SCOPES = ['https://www.googleapis.com/auth/drive']
 
-CATEGORY_META = {
+_KNOWN_META = {
     'School':             {'icon': '📚', 'color': '#5B6AF0'},
     'DiversaTech':        {'icon': '🔗', 'color': '#8B5CF6'},
     'Photos & Media':     {'icon': '📷', 'color': '#F59E0B'},
     'Work & Internships': {'icon': '💼', 'color': '#10B981'},
+    'Work':               {'icon': '💼', 'color': '#10B981'},
     'Personal':           {'icon': '📄', 'color': '#6B7280'},
     'Finance':            {'icon': '💳', 'color': '#EF4444'},
+    'Documents':          {'icon': '📂', 'color': '#6B7280'},
 }
+
+_EXTRA_COLORS = ['#EC4899', '#14B8A6', '#F97316', '#06B6D4', '#84CC16', '#8B5CF6']
+_EXTRA_ICONS  = ['📁', '🗂', '📦', '🗃', '📌', '🏷']
+
+
+def _load_category_meta():
+    config_path = os.path.join(BASE_DIR, 'config.json')
+    if not os.path.exists(config_path):
+        return dict(_KNOWN_META)
+    with open(config_path) as f:
+        cfg = json.load(f)
+    categories = cfg.get('categories', list(_KNOWN_META.keys()))
+    result = {}
+    extra_idx = 0
+    for cat in categories:
+        if cat in _KNOWN_META:
+            result[cat] = _KNOWN_META[cat]
+        else:
+            result[cat] = {
+                'icon':  _EXTRA_ICONS[extra_idx % len(_EXTRA_ICONS)],
+                'color': _EXTRA_COLORS[extra_idx % len(_EXTRA_COLORS)],
+            }
+            extra_idx += 1
+    return result
+
+
+CATEGORY_META = _load_category_meta()
 
 
 def get_drive_service():
