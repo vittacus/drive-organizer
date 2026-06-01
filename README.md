@@ -91,20 +91,27 @@ Across a full pass of a 4-year Drive:
 | Metric | Value |
 |---|---|
 | Total files found | 2,583 |
-| Successfully categorized and moved | ~480 |
-| Skipped (unowned/permission errors) | ~2,095 |
+| Successfully categorized and moved | 434 |
+| Skipped (unowned/permission errors) | 1,609 |
+| Unknown Semester | **0** |
+| Empty folders deleted (post-run cleanup) | 92 |
 | Batches processed | 173 |
 | API retry events (rate limits) | ~8 batch failures, all recovered |
-| Empty folders deleted (post-run cleanup) | TBD |
 
-**Skipped rate is high by design.** The majority of files in the Drive are shared DiversaTech documents owned by the org account — they show up in the file listing but can't be moved by a non-owner. The ~480 successfully moved files represent essentially the entire owned-file corpus.
+**Skipped rate is high by design.** The majority of files in the Drive are shared DiversaTech documents owned by the org account — they show up in the file listing but can't be moved by a non-owner. The 434 successfully moved files represent essentially the entire owned-file corpus.
 
-**Top destination folders** (from initial pass):
-- `Photos & Media` — 204 files
-- `Work & Internships` — 72 files  
-- `School/SP26/COLWRIT N132` — 24 files
-- `School/SP26/INDENG 120` — 18 files
-- `Personal` — 33 files
+**Destination breakdown:**
+
+| Folder | Files |
+|---|---|
+| DiversaTech | 707 |
+| School | 543 |
+| Photos & Media | 436 |
+| Work & Internships | 185 |
+| Personal | 167 |
+| Finance | 5 |
+
+**Zero Unknown Semester** is the standout result — the `createdTime`/`modifiedTime` date pipeline handled semester assignment for every single file without falling back to a guess.
 
 ---
 
@@ -112,7 +119,7 @@ Across a full pass of a 4-year Drive:
 
 **Shared files can't be moved.** Files owned by an organizational Google account (e.g., the DiversaTech Drive) show up in your personal Drive listing but are immovable. The script logs these and moves on. This accounts for roughly 80% of the "skipped" count.
 
-**Filename ambiguity.** Files with generic names (`HW3.pdf`, `Midterm.docx`, `Notes`) carry no course signal. These rely entirely on the creation date for semester placement and Claude for course assignment. Some end up in `Unknown Semester/Unknown Course`.
+**Filename ambiguity.** Files with generic names (`HW3.pdf`, `Midterm.docx`, `Notes`) carry no course signal. These rely entirely on the creation date for semester placement and Claude for course assignment. The date pipeline resolved all ambiguity in the v4 run, but files with missing Drive metadata could still land in `Unknown Semester`.
 
 **Course name spacing.** A mismatch between how Claude formats a course (`HS 345`) and how the `COURSE_SEMESTER_MAP` key is spelled (`HS345`) silently bypasses the override. The normalization layer catches most of these, but edge cases require manual dictionary additions.
 
